@@ -1,0 +1,53 @@
+name: Build custom Iosevka font
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "0 0 1 * *"
+
+jobs:
+  build-font:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: |
+          sudo apt install -y ttfautohint
+
+      - name: Clone Iosevka git repo
+        run: |
+          git clone --depth 1 https://github.com/be5invis/Iosevka.git iosevka
+
+      - name: Install npm packages
+        run: |
+          cd iosevka && npm install
+
+      - name: Copy config
+        run: |
+          cp private-build-plans.toml iosevka
+
+      - name: Build font
+        run: |
+          cd iosevka && npm run build -- ttf::iosevka
+
+      - name: Create zip file
+        run: |
+          cd iosevka/dist/iosevka/ttf && zip -r iosevka.zip .
+
+      - uses: "marvinpinto/action-automatic-releases@v1.2.1"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: latest
+          files: "iosevka/dist/iosevka/ttf/iosevka.zip"
